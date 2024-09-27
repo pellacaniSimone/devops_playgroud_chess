@@ -3,19 +3,6 @@
 - Applicazione Web per il gioco di scacchi
 
 
-## Autori e rouli del team
-
-|  Nominativo   | Ruolo nel team    |
-| --- | --- |
-| Umberto Paroli | Product Owner |
-| Simone Pellacani | Scrum Master |
-| Sara Panza | Dev Team |
-| Ilaria Manfredini | Dev Team |
-| Simone Menozzi | Dev Team |
-| Enrico Luppi | Dev Team |
-| Wail Maarouf | Dev Team |
-
-
 ## Link (Fuori servizio)
 
 Dev Access
