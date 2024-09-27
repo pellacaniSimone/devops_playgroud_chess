@@ -1,0 +1,75 @@
+Stop container local stage:
+  script:
+    - CI_DEFAULT_BRANCH=main
+    - docker container stop webapp_be_${CI_DEFAULT_BRANCH}_CNT || echo
+    - docker container stop webapp_fe_${CI_DEFAULT_BRANCH}_CNT || echo
+    - docker rm webapp_be_${CI_DEFAULT_BRANCH}_CNT || echo
+    - docker rm webapp_fe_${CI_DEFAULT_BRANCH}_CNT || echo
+  allow_failure: true
+
+
+
+
+Clean image local stage:
+  script: 
+    - CI_DEFAULT_BRANCH=main
+    - docker image rm webapp_main_im || echo
+    - docker image rm webapp_fe_main_im || echo
+    - docker image rm webapp_be_main_im || echo 
+  allow_failure: true
+
+
+
+Clean old images:
+  script: 
+    - CI_DEFAULT_BRANCH=main
+    - docker image prune -f
+    - docker system prune -f
+  allow_failure: true
+
+
+
+
+Build images for local stage:
+  script:
+    - CI_DEFAULT_BRANCH=main
+    - docker build --progress plain -t webapp_be_main_im .
+
+
+
+Run image from local stage:
+  script:
+    - CI_DEFAULT_BRANCH=main
+    - docker -D run -d --sysctl net.ipv4.ip_forward=0  -p 0.0.0.0:12110:80/tcp -p 0.0.0.0:12111:8000/tcp --name webapp_be_${CI_DEFAULT_BRANCH}_CNT webapp_be_main_im
+
+
+
+Is builded image active :
+  script:
+    - CI_DEFAULT_BRANCH=main
+    - sleep 5
+    - docker ps | grep webapp_be_${CI_DEFAULT_BRANCH}_CNT
+    - sleep 5
+    - docker ps | grep webapp_be_${CI_DEFAULT_BRANCH}_CNT
+
+Test python:
+  script:
+    - CI_DEFAULT_BRANCH=Sviluppo
+    - docker exec webapp_be_${CI_DEFAULT_BRANCH}_CNT python3  /python-docker/test/room_test.py
+    - docker exec webapp_be_${CI_DEFAULT_BRANCH}_CNT python3  /python-docker/test/test_app.py
+    - docker exec webapp_be_${CI_DEFAULT_BRANCH}_CNT python3  /python-docker/test/board_test.py # ci serve veramente?
+  allow_failure: true
+
+sonarqube-check:
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+      - .sonar/cache
+  script:
+    - sonar-scanner -X -D  sonar.login=sqa_9ad5e77a904cf0f16502d4f2a6bcf7d2e1f5d9ce
+  allow_failure: true
+  only:
+    - main

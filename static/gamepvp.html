@@ -1,0 +1,154 @@
+{%extends "base.html" %}
+
+{% block content %}
+<head>
+    <meta charset="UTF-8">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <title>Game PVP</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}"></link>
+    {% if (path) %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='libs/chessboard/css/chessboard-1.0.0.css') }}"></link>
+    {% else %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='libs/chessboard_pixel/css/chessboard-1.0.0.css') }}"></link>
+    {% endif %}
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon_chess.ico') }}">
+    <!-- Latest compiled and minified CSS -->
+    <!-- Optional theme -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css"
+            integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.10.1/bootstrap-table.min.css">
+
+    <!-- Latest compiled and modified JavaScript -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"
+    integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.js"></script>
+
+    {% if (path) %}
+    <script type="text/javascript" src="{{ url_for('static',filename='libs/chessboard/js/chessboard-1.0.0.js') }}"></script>
+    {% else %}
+    <script type="text/javascript" src="{{ url_for('static',filename='libs/chessboard_pixel/js/chessboard-1.0.0.js') }}"></script>
+    {% endif %}
+
+    <!--Messages interchange logic below-->
+    <script type="text/javascript" charset="utf-8">
+        var socket = io();
+        var pieceTemplates =  {
+            wiki: "https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png",
+            alpha: "https://chessboardjs.com/img/chesspieces/alpha/{piece}.png",
+            pixel: "libs/chessboard/img/chesspieces/pixel/{piece}.png"
+        }
+
+
+        var board, game = new Chess() ;
+        setTimeout(function() {  board = ChessBoard('board', cfg);  }, 100);
+
+        $(document).ready(function() {
+            socket.emit('join_pvp', { room: $('#join_room').val() });
+            socket.on('passaggio_fen', function(msg, cb) { updateFen(msg.data);  if (cb) cb();   });
+        });
+
+
+        var updateFen = function(fen) { 
+            if (game.fen()==fen) return; //  dovrebbe prevenire caricamenti indesidrati
+            else {  board.position(fen); //ok va
+                    game.load(fen); }
+            // dovrebbe sbloccare la scacchiera nel proprio turno
+            if ((game.turn() === 'w' ) && cfg.orientation=='white' ) cfg.draggable=true;
+            if ((game.turn() === 'b' ) && cfg.orientation=='black' ) cfg.draggable=true;
+        };
+
+
+        var onDragStart = function (source, piece, position, orientation) {
+            if (game.in_checkmate() === true ) {
+                window.alert("Checkmate");
+                return false;
+            }
+            if (game.in_draw() === true ) {
+                window.alert("Draw");
+                return false;
+            }
+
+            if (game.game_over())  { 
+                return false; }
+
+            // only pick up pieces for the side to move
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+            return false;
+            } 
+        };
+
+        var onDrop = function(source, target) {
+            // see if the move is legal
+            
+            var mossa = game.move({
+                from: source,
+                to: target,
+                promotion: 'q' // NOTE: always promote to a queen for example simplicity
+            });
+            // illegal move
+            if (mossa === null) return 'snapback';
+
+            //var socket = io();
+            var fen = game.fen();
+            
+
+            //var mossaunita = mossa.from+'-'+mossa.to;
+            var mossaunita = mossa.from+mossa.to;
+            var stanza = document.getElementById("join_room").value;
+            socket.emit('my_move',  { string:fen, room:stanza , mossa:mossaunita } );
+            
+            setTimeout(function ()  {socket.emit('my_move',  { string:fen, room:stanza , mossa:mossaunita } ); }, 1000 );
+
+            cfg.draggable=false; // dopo la propria mossa bloca la scacchiera
+
+        };
+
+        var onSnapEnd = function() {  board.position(game.fen()); };
+        socket.emit('join_pvp', { room: $('#join_room').val() });
+    </script>
+    {% if (color) %}
+    <script type="text/javascript" charset="utf-8">
+        var cfg = {
+        draggable: true,
+        position: 'start',
+        orientation: 'white',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+        };
+    </script>
+    {% else %}
+    <script type="text/javascript" charset="utf-8">
+        var cfg = {
+        draggable: true,
+        position: 'start',
+        orientation: 'black',
+        onDragStart: onDragStart,
+        onDrop: onDrop,
+        onSnapEnd: onSnapEnd
+        };
+    </script>
+    {% endif %}
+
+</head>
+    <simpler-navbar></simpler-navbar>
+    <!--Chat below-->
+    <input type="hidden" name="join_room" id="join_room" placeholder="Room Name" value="{{room_id}}">
+    </form>
+
+    <div id="log"></div>
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6">
+                    <div id="mainWindow">
+                        <div id="piecesB"></div>
+                        <div id="board"></div>
+                        <div id="piecesW"></div>
+                    </div>
+                </div>
+        </div>
+    </div>
+</body>
+
+{% endblock %}

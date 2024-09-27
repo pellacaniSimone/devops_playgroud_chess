@@ -1,0 +1,15 @@
+flask
+python-chess
+psycopg2-binary
+Flask-Session
+Flask_SocketIO
+Flask_Cors
+python-socketio
+requests
+flask-login
+Flask-Testing
+
+
+#pytest
+#pytest-cov
+#flask-restplus

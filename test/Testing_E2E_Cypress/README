@@ -1,0 +1,11 @@
+#Per insrallare cypress tramite bpm
+
+cd /your/project/path
+npm install cypress --save-dev
+
+#starting ap
+
+npx cypress open
+
+#Avviare e settare il progetto ed aggiungeri il file spec.cy.js alla drectory e2e, oppure copiarne il contenuto in un test
+#Per ulteriori dettagli: https://docs.cypress.io/guides/getting-started/installing-cypress
